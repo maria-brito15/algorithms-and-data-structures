@@ -24,257 +24,272 @@ public class RedBlackTree {
         root = NIL;
     }
     
-    // Left rotation
-    private void leftRotate(Node x) {
-        Node y = x.right;
-        x.right = y.left;
+    // Left rotation around pivot node
+    private void leftRotate(Node pivot) {
+        Node rightChild = pivot.right;
+        pivot.right = rightChild.left;
         
-        if (y.left != NIL)
-            y.left.parent = x;
+        if (rightChild.left != NIL)
+            rightChild.left.parent = pivot;
         
-        y.parent = x.parent;
+        rightChild.parent = pivot.parent;
         
-        if (x.parent == NIL)
-            root = y;
-        else if (x == x.parent.left)
-            x.parent.left = y;
+        if (pivot.parent == NIL)
+            root = rightChild;
+        else if (pivot == pivot.parent.left)
+            pivot.parent.left = rightChild;
         else
-            x.parent.right = y;
+            pivot.parent.right = rightChild;
         
-        y.left = x;
-        x.parent = y;
+        rightChild.left = pivot;
+        pivot.parent = rightChild;
     }
     
-    // Right rotation
-    private void rightRotate(Node y) {
-        Node x = y.left;
-        y.left = x.right;
+    // Right rotation around pivot node
+    private void rightRotate(Node pivot) {
+        Node leftChild = pivot.left;
+        pivot.left = leftChild.right;
         
-        if (x.right != NIL)
-            x.right.parent = y;
+        if (leftChild.right != NIL)
+            leftChild.right.parent = pivot;
         
-        x.parent = y.parent;
+        leftChild.parent = pivot.parent;
         
-        if (y.parent == NIL)
-            root = x;
-        else if (y == y.parent.left)
-            y.parent.left = x;
+        if (pivot.parent == NIL)
+            root = leftChild;
+        else if (pivot == pivot.parent.left)
+            pivot.parent.left = leftChild;
         else
-            y.parent.right = x;
+            pivot.parent.right = leftChild;
         
-        x.right = y;
-        y.parent = x;
+        leftChild.right = pivot;
+        pivot.parent = leftChild;
     }
     
-    // Fix violations after insertion
-    private void insertFixup(Node z) {
-        while (z.parent.color == Color.RED) {
-            if (z.parent == z.parent.parent.left) {
-                Node y = z.parent.parent.right;
+    // Fix red-black tree violations after insertion
+    private void fixInsertViolations(Node current) {
+        while (current.parent.color == Color.RED) {
+            if (current.parent == current.parent.parent.left) {
+                Node uncle = current.parent.parent.right;
 
-                if (y.color == Color.RED) {
-                    z.parent.color = Color.BLACK;
-                    y.color = Color.BLACK;
-                    z.parent.parent.color = Color.RED;
-
-                    z = z.parent.parent;
+                // Case 1: Uncle is red - recolor
+                if (uncle.color == Color.RED) {
+                    current.parent.color = Color.BLACK;
+                    uncle.color = Color.BLACK;
+                    current.parent.parent.color = Color.RED;
+                    current = current.parent.parent;
                 } else {
-                    if (z == z.parent.right) {
-                        z = z.parent;
-                        leftRotate(z);
+                    // Case 2: Current is right child - left rotate
+                    if (current == current.parent.right) {
+                        current = current.parent;
+                        leftRotate(current);
                     }
 
-                    z.parent.color = Color.BLACK;
-                    z.parent.parent.color = Color.RED;
-
-                    rightRotate(z.parent.parent);
+                    // Case 3: Current is left child - recolor and right rotate
+                    current.parent.color = Color.BLACK;
+                    current.parent.parent.color = Color.RED;
+                    rightRotate(current.parent.parent);
                 }
             } else {
-                Node y = z.parent.parent.left;
-                if (y.color == Color.RED) {
-                    z.parent.color = Color.BLACK;
-                    y.color = Color.BLACK;
-                    z.parent.parent.color = Color.RED;
-
-                    z = z.parent.parent;
+                Node uncle = current.parent.parent.left;
+                
+                // Case 1: Uncle is red - recolor
+                if (uncle.color == Color.RED) {
+                    current.parent.color = Color.BLACK;
+                    uncle.color = Color.BLACK;
+                    current.parent.parent.color = Color.RED;
+                    current = current.parent.parent;
                 } else {
-                    if (z == z.parent.left) {
-                        z = z.parent;
-
-                        rightRotate(z);
+                    // Case 2: Current is left child - right rotate
+                    if (current == current.parent.left) {
+                        current = current.parent;
+                        rightRotate(current);
                     }
-                    z.parent.color = Color.BLACK;
-                    z.parent.parent.color = Color.RED;
-
-                    leftRotate(z.parent.parent);
+                    
+                    // Case 3: Current is right child - recolor and left rotate
+                    current.parent.color = Color.BLACK;
+                    current.parent.parent.color = Color.RED;
+                    leftRotate(current.parent.parent);
                 }
             }
         }
         root.color = Color.BLACK;
     }
     
-    // Insert a node
+    // Insert a node with given data
     public void insert(int data) {
-        Node z = new Node(data);
-        z.left = NIL;
-        z.right = NIL;
+        Node newNode = new Node(data);
+        newNode.left = NIL;
+        newNode.right = NIL;
         
-        Node y = NIL;
-        Node x = root;
+        Node parentNode = NIL;
+        Node currentNode = root;
         
-        while (x != NIL) {
-            y = x;
-            if (z.data < x.data)
-                x = x.left;
+        // Find the correct position for insertion
+        while (currentNode != NIL) {
+            parentNode = currentNode;
+            if (newNode.data < currentNode.data)
+                currentNode = currentNode.left;
             else
-                x = x.right;
+                currentNode = currentNode.right;
         }
         
-        z.parent = y;
+        newNode.parent = parentNode;
         
-        if (y == NIL)
-            root = z;
-        else if (z.data < y.data)
-            y.left = z;
+        // Insert the node
+        if (parentNode == NIL)
+            root = newNode;
+        else if (newNode.data < parentNode.data)
+            parentNode.left = newNode;
         else
-            y.right = z;
+            parentNode.right = newNode;
         
-        insertFixup(z);
+        fixInsertViolations(newNode);
     }
     
-    // Transplant utility for deletion
-    private void transplant(Node u, Node v) {
-        if (u.parent == NIL)
-            root = v;
-        else if (u == u.parent.left)
-            u.parent.left = v;
+    // Replace old node with new node in the tree structure
+    private void transplant(Node oldNode, Node newNode) {
+        if (oldNode.parent == NIL)
+            root = newNode;
+        else if (oldNode == oldNode.parent.left)
+            oldNode.parent.left = newNode;
         else
-            u.parent.right = v;
+            oldNode.parent.right = newNode;
 
-        v.parent = u.parent;
+        newNode.parent = oldNode.parent;
     }
     
-    // Find minimum in subtree
-    private Node minimum(Node node) {
-        while (node.left != NIL)
-            node = node.left;
+    // Find the node with minimum value in subtree
+    private Node findMinimum(Node subtreeRoot) {
+        while (subtreeRoot.left != NIL)
+            subtreeRoot = subtreeRoot.left;
 
-        return node;
+        return subtreeRoot;
     }
     
-    // Find maximum in subtree
-    private Node maximum(Node node) {
-        while (node.right != NIL)
-            node = node.right;
+    // Find the node with maximum value in subtree
+    private Node findMaximum(Node subtreeRoot) {
+        while (subtreeRoot.right != NIL)
+            subtreeRoot = subtreeRoot.right;
 
-        return node;
+        return subtreeRoot;
     }
     
-    // Fix violations after deletion
-    private void deleteFixup(Node x) {
-        while (x != root && x.color == Color.BLACK) {
-            if (x == x.parent.left) {
-                Node w = x.parent.right;
-                if (w.color == Color.RED) {
-                    w.color = Color.BLACK;
-                    x.parent.color = Color.RED;
-
-                    leftRotate(x.parent);
+    // Fix red-black tree violations after deletion
+    private void fixDeleteViolations(Node current) {
+        while (current != root && current.color == Color.BLACK) {
+            if (current == current.parent.left) {
+                Node sibling = current.parent.right;
+                
+                // Case 1: Sibling is red
+                if (sibling.color == Color.RED) {
+                    sibling.color = Color.BLACK;
+                    current.parent.color = Color.RED;
+                    leftRotate(current.parent);
+                    sibling = current.parent.right;
+                }
+                
+                // Case 2: Sibling is black with two black children
+                if (sibling.left.color == Color.BLACK && sibling.right.color == Color.BLACK) {
+                    sibling.color = Color.RED;
+                    current = current.parent;
+                } else {
+                    // Case 3: Sibling is black with red left child and black right child
+                    if (sibling.right.color == Color.BLACK) {
+                        sibling.left.color = Color.BLACK;
+                        sibling.color = Color.RED;
+                        rightRotate(sibling);
+                        sibling = current.parent.right;
+                    }
                     
-                    w = x.parent.right;
-                }
-                if (w.left.color == Color.BLACK && w.right.color == Color.BLACK) {
-                    w.color = Color.RED;
-                    x = x.parent;
-                } else {
-                    if (w.right.color == Color.BLACK) {
-                        w.left.color = Color.BLACK;
-                        w.color = Color.RED;
-                        rightRotate(w);
-                        w = x.parent.right;
-                    }
-                    w.color = x.parent.color;
-                    x.parent.color = Color.BLACK;
-                    w.right.color = Color.BLACK;
-                    leftRotate(x.parent);
-                    x = root;
+                    // Case 4: Sibling is black with red right child
+                    sibling.color = current.parent.color;
+                    current.parent.color = Color.BLACK;
+                    sibling.right.color = Color.BLACK;
+                    leftRotate(current.parent);
+                    current = root;
                 }
             } else {
-                Node w = x.parent.left;
-                if (w.color == Color.RED) {
-                    w.color = Color.BLACK;
-                    x.parent.color = Color.RED;
-
-                    rightRotate(x.parent);
-
-                    w = x.parent.left;
+                Node sibling = current.parent.left;
+                
+                // Case 1: Sibling is red
+                if (sibling.color == Color.RED) {
+                    sibling.color = Color.BLACK;
+                    current.parent.color = Color.RED;
+                    rightRotate(current.parent);
+                    sibling = current.parent.left;
                 }
-                if (w.right.color == Color.BLACK && w.left.color == Color.BLACK) {
-                    w.color = Color.RED;
-                    x = x.parent;
+                
+                // Case 2: Sibling is black with two black children
+                if (sibling.right.color == Color.BLACK && sibling.left.color == Color.BLACK) {
+                    sibling.color = Color.RED;
+                    current = current.parent;
                 } else {
-                    if (w.left.color == Color.BLACK) {
-                        w.right.color = Color.BLACK;
-                        w.color = Color.RED;
-
-                        leftRotate(w);
-
-                        w = x.parent.left;
+                    // Case 3: Sibling is black with red right child and black left child
+                    if (sibling.left.color == Color.BLACK) {
+                        sibling.right.color = Color.BLACK;
+                        sibling.color = Color.RED;
+                        leftRotate(sibling);
+                        sibling = current.parent.left;
                     }
-                    w.color = x.parent.color;
-                    x.parent.color = Color.BLACK;
-                    w.left.color = Color.BLACK;
-
-                    rightRotate(x.parent);
-
-                    x = root;
+                    
+                    // Case 4: Sibling is black with red left child
+                    sibling.color = current.parent.color;
+                    current.parent.color = Color.BLACK;
+                    sibling.left.color = Color.BLACK;
+                    rightRotate(current.parent);
+                    current = root;
                 }
             }
         }
-        x.color = Color.BLACK;
+        current.color = Color.BLACK;
     }
     
-    // Delete a node
+    // Delete a node with given data
     public void delete(int data) {
-        Node z = search(data);
-        if (z == null) return;
+        Node nodeToDelete = search(data);
+        if (nodeToDelete == null) return;
         
-        Node y = z;
-        Node x;
-        Color yOriginalColor = y.color;
+        Node nodeToRemove = nodeToDelete;
+        Node replacementNode;
+        Color originalColor = nodeToRemove.color;
         
-        if (z.left == NIL) {
-            x = z.right;
-            transplant(z, z.right);
-        } else if (z.right == NIL) {
-            x = z.left;
-            transplant(z, z.left);
-        } else {
-            y = minimum(z.right);
-            yOriginalColor = y.color;
-            x = y.right;
+        // Case 1: Node has no left child
+        if (nodeToDelete.left == NIL) {
+            replacementNode = nodeToDelete.right;
+            transplant(nodeToDelete, nodeToDelete.right);
+        } 
+        // Case 2: Node has no right child
+        else if (nodeToDelete.right == NIL) {
+            replacementNode = nodeToDelete.left;
+            transplant(nodeToDelete, nodeToDelete.left);
+        } 
+        // Case 3: Node has two children
+        else {
+            nodeToRemove = findMinimum(nodeToDelete.right);
+            originalColor = nodeToRemove.color;
+            replacementNode = nodeToRemove.right;
             
-            if (y.parent == z) {
-                x.parent = y;
+            if (nodeToRemove.parent == nodeToDelete) {
+                replacementNode.parent = nodeToRemove;
             } else {
-                transplant(y, y.right);
-
-                y.right = z.right;
-                y.right.parent = y;
+                transplant(nodeToRemove, nodeToRemove.right);
+                nodeToRemove.right = nodeToDelete.right;
+                nodeToRemove.right.parent = nodeToRemove;
             }
             
-            transplant(z, y);
-
-            y.left = z.left;
-            y.left.parent = y;
-            y.color = z.color;
+            transplant(nodeToDelete, nodeToRemove);
+            nodeToRemove.left = nodeToDelete.left;
+            nodeToRemove.left.parent = nodeToRemove;
+            nodeToRemove.color = nodeToDelete.color;
         }
         
-        if (yOriginalColor == Color.BLACK)
-            deleteFixup(x);
+        // Fix violations if a black node was removed
+        if (originalColor == Color.BLACK)
+            fixDeleteViolations(replacementNode);
     }
     
-    // Search for a node
+    // Search for a node with given data
     public Node search(int data) {
         Node current = root;
         while (current != NIL && current.data != data) {
@@ -287,51 +302,51 @@ public class RedBlackTree {
         return (current != NIL) ? current : null;
     }
     
-    // Find successor
-    public Node successor(Node x) {
-        if (x.right != NIL)
-            return minimum(x.right);
+    // Find the successor (next larger node) of given node
+    public Node successor(Node node) {
+        if (node.right != NIL)
+            return findMinimum(node.right);
         
-        Node y = x.parent;
-        while (y != NIL && x == y.right) {
-            x = y;
-            y = y.parent;
+        Node parent = node.parent;
+        while (parent != NIL && node == parent.right) {
+            node = parent;
+            parent = parent.parent;
         }
 
-        return (y != NIL) ? y : null;
+        return (parent != NIL) ? parent : null;
     }
     
-    // Find predecessor
-    public Node predecessor(Node x) {
-        if (x.left != NIL)
-            return maximum(x.left);
+    // Find the predecessor (next smaller node) of given node
+    public Node predecessor(Node node) {
+        if (node.left != NIL)
+            return findMaximum(node.left);
         
-        Node y = x.parent;
-        while (y != NIL && x == y.left) {
-            x = y;
-            y = y.parent;
+        Node parent = node.parent;
+        while (parent != NIL && node == parent.left) {
+            node = parent;
+            parent = parent.parent;
         }
 
-        return (y != NIL) ? y : null;
+        return (parent != NIL) ? parent : null;
     }
     
-    // Find tree minimum
+    // Find the minimum value in the entire tree
     public Node findMin() {
         if (root == NIL)
             return null;
 
-        return minimum(root);
+        return findMinimum(root);
     }
     
-    // Find tree maximum
+    // Find the maximum value in the entire tree
     public Node findMax() {
         if (root == NIL)
             return null;
 
-        return maximum(root);
+        return findMaximum(root);
     }
     
-    // In-order traversal
+    // Perform in-order traversal and print nodes
     public void inorder(Node node) {
         if (node != NIL) {
             inorder(node.left);
@@ -347,7 +362,7 @@ public class RedBlackTree {
         return root;
     }
     
-    // Example usage
+    // Example usage demonstrating all operations
     public static void main(String[] args) {
         RedBlackTree tree = new RedBlackTree();
         
@@ -360,12 +375,12 @@ public class RedBlackTree {
             System.out.println();
         }
         
-        // Search
+        // Search for a node
         Node found = tree.search(15);
         if (found != null)
             System.out.println("\nFound: " + found.data);
         
-        // Find min and max
+        // Find minimum and maximum
         Node minNode = tree.findMin();
         Node maxNode = tree.findMax();
         System.out.println("Min: " + minNode.data + ", Max: " + maxNode.data);
@@ -379,7 +394,7 @@ public class RedBlackTree {
             System.out.println("Predecessor of 15: " + (pred != null ? pred.data : "null"));
         }
         
-        // Delete
+        // Delete a node
         tree.delete(20);
         System.out.print("\nAfter deleting 20: ");
         tree.inorder(tree.getRoot());
