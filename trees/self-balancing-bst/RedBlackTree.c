@@ -39,262 +39,269 @@ RedBlackTree* createTree() {
     return tree;
 }
 
-// Left rotation
-void leftRotate(RedBlackTree *tree, Node *x) {
-    Node *y = x->right;
-    x->right = y->left;
+// Left rotation around pivot node
+void leftRotate(RedBlackTree *tree, Node *pivot) {
+    Node *rightChild = pivot->right;
+    pivot->right = rightChild->left;
     
-    if (y->left != tree->NIL)
-        y->left->parent = x;
+    if (rightChild->left != tree->NIL)
+        rightChild->left->parent = pivot;
     
-    y->parent = x->parent;
+    rightChild->parent = pivot->parent;
     
-    if (x->parent == tree->NIL)
-        tree->root = y;
-    else if (x == x->parent->left)
-        x->parent->left = y;
+    if (pivot->parent == tree->NIL)
+        tree->root = rightChild;
+    else if (pivot == pivot->parent->left)
+        pivot->parent->left = rightChild;
     else
-        x->parent->right = y;
+        pivot->parent->right = rightChild;
     
-    y->left = x;
-    x->parent = y;
+    rightChild->left = pivot;
+    pivot->parent = rightChild;
 }
 
-// Right rotation
-void rightRotate(RedBlackTree *tree, Node *y) {
-    Node *x = y->left;
-    y->left = x->right;
+// Right rotation around pivot node
+void rightRotate(RedBlackTree *tree, Node *pivot) {
+    Node *leftChild = pivot->left;
+    pivot->left = leftChild->right;
     
-    if (x->right != tree->NIL)
-        x->right->parent = y;
+    if (leftChild->right != tree->NIL)
+        leftChild->right->parent = pivot;
     
-    x->parent = y->parent;
+    leftChild->parent = pivot->parent;
     
-    if (y->parent == tree->NIL)
-        tree->root = x;
-    else if (y == y->parent->left)
-        y->parent->left = x;
+    if (pivot->parent == tree->NIL)
+        tree->root = leftChild;
+    else if (pivot == pivot->parent->left)
+        pivot->parent->left = leftChild;
     else
-        y->parent->right = x;
+        pivot->parent->right = leftChild;
     
-    x->right = y;
-    y->parent = x;
+    leftChild->right = pivot;
+    pivot->parent = leftChild;
 }
 
-// Fix violations after insertion
-void insertFixup(RedBlackTree *tree, Node *z) {
-    while (z->parent->color == RED) {
-        if (z->parent == z->parent->parent->left) {
-            Node *y = z->parent->parent->right;
+// Fix red-black tree violations after insertion
+void fixInsertViolations(RedBlackTree *tree, Node *current) {
+    while (current->parent->color == RED) {
+        if (current->parent == current->parent->parent->left) {
+            Node *uncle = current->parent->parent->right;
 
-            if (y->color == RED) {
-                z->parent->color = BLACK;
-                y->color = BLACK;
-                z->parent->parent->color = RED;
-
-                z = z->parent->parent;
+            // Case 1: Uncle is red - recolor
+            if (uncle->color == RED) {
+                current->parent->color = BLACK;
+                uncle->color = BLACK;
+                current->parent->parent->color = RED;
+                current = current->parent->parent;
             } else {
-                if (z == z->parent->right) {
-                    z = z->parent;
-                    
-                    leftRotate(tree, z);
+                // Case 2: Current is right child - left rotate
+                if (current == current->parent->right) {
+                    current = current->parent;
+                    leftRotate(tree, current);
                 }
 
-                z->parent->color = BLACK;
-                z->parent->parent->color = RED;
-
-                rightRotate(tree, z->parent->parent);
+                // Case 3: Current is left child - recolor and right rotate
+                current->parent->color = BLACK;
+                current->parent->parent->color = RED;
+                rightRotate(tree, current->parent->parent);
             }
         } else {
-            Node *y = z->parent->parent->left;
-            if (y->color == RED) {
-                z->parent->color = BLACK;
-                y->color = BLACK;
-                z->parent->parent->color = RED;
-
-                z = z->parent->parent;
+            Node *uncle = current->parent->parent->left;
+            
+            // Case 1: Uncle is red - recolor
+            if (uncle->color == RED) {
+                current->parent->color = BLACK;
+                uncle->color = BLACK;
+                current->parent->parent->color = RED;
+                current = current->parent->parent;
             } else {
-                if (z == z->parent->left) {
-                    z = z->parent;
-
-                    rightRotate(tree, z);
+                // Case 2: Current is left child - right rotate
+                if (current == current->parent->left) {
+                    current = current->parent;
+                    rightRotate(tree, current);
                 }
-                z->parent->color = BLACK;
-                z->parent->parent->color = RED;
-
-                leftRotate(tree, z->parent->parent);
+                
+                // Case 3: Current is right child - recolor and left rotate
+                current->parent->color = BLACK;
+                current->parent->parent->color = RED;
+                leftRotate(tree, current->parent->parent);
             }
         }
     }
     tree->root->color = BLACK;
 }
 
-// Insert a node
+// Insert a node with given data
 void insert(RedBlackTree *tree, int data) {
-    Node *z = createNode(tree, data);
-    Node *y = tree->NIL;
-    Node *x = tree->root;
+    Node *newNode = createNode(tree, data);
+    Node *parentNode = tree->NIL;
+    Node *currentNode = tree->root;
     
-    while (x != tree->NIL) {
-        y = x;
+    // Find the correct position for insertion
+    while (currentNode != tree->NIL) {
+        parentNode = currentNode;
 
-        if (z->data < x->data)
-            x = x->left;
+        if (newNode->data < currentNode->data)
+            currentNode = currentNode->left;
         else
-            x = x->right;
+            currentNode = currentNode->right;
     }
     
-    z->parent = y;
+    newNode->parent = parentNode;
     
-    if (y == tree->NIL)
-        tree->root = z;
-    else if (z->data < y->data)
-        y->left = z;
+    // Insert the node
+    if (parentNode == tree->NIL)
+        tree->root = newNode;
+    else if (newNode->data < parentNode->data)
+        parentNode->left = newNode;
     else
-        y->right = z;
+        parentNode->right = newNode;
     
-    insertFixup(tree, z);
+    fixInsertViolations(tree, newNode);
 }
 
-// Transplant utility for deletion
-void transplant(RedBlackTree *tree, Node *u, Node *v) {
-    if (u->parent == tree->NIL)
-        tree->root = v;
-    else if (u == u->parent->left)
-        u->parent->left = v;
+// Replace old node with new node in the tree structure
+void transplant(RedBlackTree *tree, Node *oldNode, Node *newNode) {
+    if (oldNode->parent == tree->NIL)
+        tree->root = newNode;
+    else if (oldNode == oldNode->parent->left)
+        oldNode->parent->left = newNode;
     else
-        u->parent->right = v;
+        oldNode->parent->right = newNode;
 
-    v->parent = u->parent;
+    newNode->parent = oldNode->parent;
 }
 
-// Find minimum in subtree
-Node* minimum(RedBlackTree *tree, Node *node) {
-    while (node->left != tree->NIL)
-        node = node->left;
+// Find the node with minimum value in subtree
+Node* findMinimum(RedBlackTree *tree, Node *subtreeRoot) {
+    while (subtreeRoot->left != tree->NIL)
+        subtreeRoot = subtreeRoot->left;
 
-    return node;
+    return subtreeRoot;
 }
 
-// Find maximum in subtree
-Node* maximum(RedBlackTree *tree, Node *node) {
-    while (node->right != tree->NIL)
-        node = node->right;
+// Find the node with maximum value in subtree
+Node* findMaximum(RedBlackTree *tree, Node *subtreeRoot) {
+    while (subtreeRoot->right != tree->NIL)
+        subtreeRoot = subtreeRoot->right;
 
-    return node;
+    return subtreeRoot;
 }
 
-// Fix violations after deletion
-void deleteFixup(RedBlackTree *tree, Node *x) {
-    while (x != tree->root && x->color == BLACK) {
-        if (x == x->parent->left) {
-            Node *w = x->parent->right;
+// Fix red-black tree violations after deletion
+void fixDeleteViolations(RedBlackTree *tree, Node *current) {
+    while (current != tree->root && current->color == BLACK) {
+        if (current == current->parent->left) {
+            Node *sibling = current->parent->right;
 
-            if (w->color == RED) {
-                w->color = BLACK;
-                x->parent->color = RED;
-
-                leftRotate(tree, x->parent);
-
-                w = x->parent->right;
+            // Case 1: Sibling is red
+            if (sibling->color == RED) {
+                sibling->color = BLACK;
+                current->parent->color = RED;
+                leftRotate(tree, current->parent);
+                sibling = current->parent->right;
             }
-            if (w->left->color == BLACK && w->right->color == BLACK) {
-                w->color = RED;
-                x = x->parent;
+            
+            // Case 2: Sibling is black with two black children
+            if (sibling->left->color == BLACK && sibling->right->color == BLACK) {
+                sibling->color = RED;
+                current = current->parent;
             } else {
-                if (w->right->color == BLACK) {
-                    w->left->color = BLACK;
-                    w->color = RED;
-
-                    rightRotate(tree, w);
-
-                    w = x->parent->right;
+                // Case 3: Sibling is black with red left child and black right child
+                if (sibling->right->color == BLACK) {
+                    sibling->left->color = BLACK;
+                    sibling->color = RED;
+                    rightRotate(tree, sibling);
+                    sibling = current->parent->right;
                 }
 
-                w->color = x->parent->color;
-                x->parent->color = BLACK;
-                w->right->color = BLACK;
-
-                leftRotate(tree, x->parent);
-
-                x = tree->root;
+                // Case 4: Sibling is black with red right child
+                sibling->color = current->parent->color;
+                current->parent->color = BLACK;
+                sibling->right->color = BLACK;
+                leftRotate(tree, current->parent);
+                current = tree->root;
             }
         } else {
-            Node *w = x->parent->left;
+            Node *sibling = current->parent->left;
 
-            if (w->color == RED) {
-                w->color = BLACK;
-                x->parent->color = RED;
-
-                rightRotate(tree, x->parent);
-
-                w = x->parent->left;
+            // Case 1: Sibling is red
+            if (sibling->color == RED) {
+                sibling->color = BLACK;
+                current->parent->color = RED;
+                rightRotate(tree, current->parent);
+                sibling = current->parent->left;
             }
-            if (w->right->color == BLACK && w->left->color == BLACK) {
-                w->color = RED;
-                x = x->parent;
+            
+            // Case 2: Sibling is black with two black children
+            if (sibling->right->color == BLACK && sibling->left->color == BLACK) {
+                sibling->color = RED;
+                current = current->parent;
             } else {
-                if (w->left->color == BLACK) {
-                    w->right->color = BLACK;
-                    w->color = RED;
-
-                    leftRotate(tree, w);
-
-                    w = x->parent->left;
+                // Case 3: Sibling is black with red right child and black left child
+                if (sibling->left->color == BLACK) {
+                    sibling->right->color = BLACK;
+                    sibling->color = RED;
+                    leftRotate(tree, sibling);
+                    sibling = current->parent->left;
                 }
 
-                w->color = x->parent->color;
-                x->parent->color = BLACK;
-                w->left->color = BLACK;
-
-                rightRotate(tree, x->parent);
-                
-                x = tree->root;
+                // Case 4: Sibling is black with red left child
+                sibling->color = current->parent->color;
+                current->parent->color = BLACK;
+                sibling->left->color = BLACK;
+                rightRotate(tree, current->parent);
+                current = tree->root;
             }
         }
     }
-    x->color = BLACK;
+    current->color = BLACK;
 }
 
 // Delete a node
-void deleteNode(RedBlackTree *tree, Node *z) {
-    Node *y = z;
-    Node *x;
-    Color yOriginalColor = y->color;
+void deleteNode(RedBlackTree *tree, Node *nodeToDelete) {
+    Node *nodeToRemove = nodeToDelete;
+    Node *replacementNode;
+    Color originalColor = nodeToRemove->color;
     
-    if (z->left == tree->NIL) {
-        x = z->right;
-        transplant(tree, z, z->right);
-    } else if (z->right == tree->NIL) {
-        x = z->left;
-        transplant(tree, z, z->left);
-    } else {
-        y = minimum(tree, z->right);
-        yOriginalColor = y->color;
-        x = y->right;
+    // Case 1: Node has no left child
+    if (nodeToDelete->left == tree->NIL) {
+        replacementNode = nodeToDelete->right;
+        transplant(tree, nodeToDelete, nodeToDelete->right);
+    } 
+    // Case 2: Node has no right child
+    else if (nodeToDelete->right == tree->NIL) {
+        replacementNode = nodeToDelete->left;
+        transplant(tree, nodeToDelete, nodeToDelete->left);
+    } 
+    // Case 3: Node has two children
+    else {
+        nodeToRemove = findMinimum(tree, nodeToDelete->right);
+        originalColor = nodeToRemove->color;
+        replacementNode = nodeToRemove->right;
         
-        if (y->parent == z) {
-            x->parent = y;
+        if (nodeToRemove->parent == nodeToDelete) {
+            replacementNode->parent = nodeToRemove;
         } else {
-            transplant(tree, y, y->right);
-            y->right = z->right;
-            y->right->parent = y;
+            transplant(tree, nodeToRemove, nodeToRemove->right);
+            nodeToRemove->right = nodeToDelete->right;
+            nodeToRemove->right->parent = nodeToRemove;
         }
         
-        transplant(tree, z, y);
-
-        y->left = z->left;
-        y->left->parent = y;
-        y->color = z->color;
+        transplant(tree, nodeToDelete, nodeToRemove);
+        nodeToRemove->left = nodeToDelete->left;
+        nodeToRemove->left->parent = nodeToRemove;
+        nodeToRemove->color = nodeToDelete->color;
     }
     
-    if (yOriginalColor == BLACK)
-        deleteFixup(tree, x);
+    // Fix violations if a black node was removed
+    if (originalColor == BLACK)
+        fixDeleteViolations(tree, replacementNode);
     
-    free(z);
+    free(nodeToDelete);
 }
 
-// Search for a node
+// Search for a node with given data
 Node* search(RedBlackTree *tree, int data) {
     Node *current = tree->root;
     while (current != tree->NIL && current->data != data) {
@@ -307,51 +314,51 @@ Node* search(RedBlackTree *tree, int data) {
     return (current != tree->NIL) ? current : NULL;
 }
 
-// Find successor
-Node* successor(RedBlackTree *tree, Node *x) {
-    if (x->right != tree->NIL)
-        return minimum(tree, x->right);
+// Find the successor (next larger node) of given node
+Node* successor(RedBlackTree *tree, Node *node) {
+    if (node->right != tree->NIL)
+        return findMinimum(tree, node->right);
     
-    Node *y = x->parent;
-    while (y != tree->NIL && x == y->right) {
-        x = y;
-        y = y->parent;
+    Node *parent = node->parent;
+    while (parent != tree->NIL && node == parent->right) {
+        node = parent;
+        parent = parent->parent;
     }
 
-    return (y != tree->NIL) ? y : NULL;
+    return (parent != tree->NIL) ? parent : NULL;
 }
 
-// Find predecessor
-Node* predecessor(RedBlackTree *tree, Node *x) {
-    if (x->left != tree->NIL)
-        return maximum(tree, x->left);
+// Find the predecessor (next smaller node) of given node
+Node* predecessor(RedBlackTree *tree, Node *node) {
+    if (node->left != tree->NIL)
+        return findMaximum(tree, node->left);
     
-    Node *y = x->parent;
-    while (y != tree->NIL && x == y->left) {
-        x = y;
-        y = y->parent;
+    Node *parent = node->parent;
+    while (parent != tree->NIL && node == parent->left) {
+        node = parent;
+        parent = parent->parent;
     }
 
-    return (y != tree->NIL) ? y : NULL;
+    return (parent != tree->NIL) ? parent : NULL;
 }
 
-// Find tree minimum
+// Find the minimum value in the entire tree
 Node* findMin(RedBlackTree *tree) {
     if (tree->root == tree->NIL)
         return NULL;
 
-    return minimum(tree, tree->root);
+    return findMinimum(tree, tree->root);
 }
 
-// Find tree maximum
+// Find the maximum value in the entire tree
 Node* findMax(RedBlackTree *tree) {
     if (tree->root == tree->NIL)
         return NULL;
     
-    return maximum(tree, tree->root);
+    return findMaximum(tree, tree->root);
 }
 
-// In-order traversal
+// Perform in-order traversal and print nodes
 void inorder(RedBlackTree *tree, Node *node) {
     if (node != tree->NIL) {
         inorder(tree, node->left);
@@ -360,7 +367,7 @@ void inorder(RedBlackTree *tree, Node *node) {
     }
 }
 
-// Example usage
+// Example usage demonstrating all operations
 int main() {
     RedBlackTree *tree = createTree();
     
@@ -373,12 +380,12 @@ int main() {
         printf("\n");
     }
     
-    // Search
+    // Search for a node
     Node *found = search(tree, 15);
     if (found)
         printf("\nFound: %d\n", found->data);
     
-    // Find min and max
+    // Find minimum and maximum
     Node *minNode = findMin(tree);
     Node *maxNode = findMax(tree);
     printf("Min: %d, Max: %d\n", minNode->data, maxNode->data);
@@ -392,7 +399,7 @@ int main() {
         printf("Predecessor of 15: %d\n", pred ? pred->data : -1);
     }
     
-    // Delete
+    // Delete a node
     Node *toDelete = search(tree, 20);
     if (toDelete) {
         deleteNode(tree, toDelete);
