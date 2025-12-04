@@ -15,7 +15,7 @@ class Node {
 
 public class RedBlackTree {
     private Node root;
-    private Node NIL;
+    private final Node NIL;
     
     public RedBlackTree() {
         NIL = new Node(0);
@@ -24,7 +24,18 @@ public class RedBlackTree {
         root = NIL;
     }
     
-    // Left rotation
+    // ==================== UTILITY METHODS ====================
+    
+    private boolean isRed(Node node) {
+        return node != NIL && node.color == Color.RED;
+    }
+    
+    private boolean isBlack(Node node) {
+        return node == NIL || node.color == Color.BLACK;
+    }
+    
+    // ==================== ROTATION METHODS ====================
+    
     private Node leftRotate(Node pivot) {
         Node rightChild = pivot.right;
         pivot.right = rightChild.left;
@@ -32,7 +43,6 @@ public class RedBlackTree {
         return rightChild;
     }
     
-    // Right rotation
     private Node rightRotate(Node pivot) {
         Node leftChild = pivot.left;
         pivot.left = leftChild.right;
@@ -40,275 +50,295 @@ public class RedBlackTree {
         return leftChild;
     }
     
-    // Insert and fix violations
-    private Node insertFix(Node rootNode, int data, boolean[] inserted) {
-        if (rootNode == NIL) {
-            inserted[0] = true;
-            Node newNode = new Node(data);
-            newNode.left = NIL;
-            newNode.right = NIL;
-            return newNode;
-        }
-        
-        if (data < rootNode.data) {
-            rootNode.left = insertFix(rootNode.left, data, inserted);
-        } else if (data > rootNode.data) {
-            rootNode.right = insertFix(rootNode.right, data, inserted);
-        } else {
-            return rootNode; // Duplicate
-        }
-        
-        if (!inserted[0])
-            return rootNode;
-        
-        // Fix violations
-        if (rootNode.left != NIL && rootNode.left.color == Color.RED &&
-            rootNode.left.left != NIL && rootNode.left.left.color == Color.RED) {
-            
-            if (rootNode.right != NIL && rootNode.right.color == Color.RED) {
-                rootNode.color = Color.RED;
-                rootNode.left.color = Color.BLACK;
-                rootNode.right.color = Color.BLACK;
-            } else {
-                rootNode = rightRotate(rootNode);
-                rootNode.color = Color.BLACK;
-                rootNode.right.color = Color.RED;
-            }
-        } else if (rootNode.left != NIL && rootNode.left.color == Color.RED &&
-                   rootNode.left.right != NIL && rootNode.left.right.color == Color.RED) {
-            
-            if (rootNode.right != NIL && rootNode.right.color == Color.RED) {
-                rootNode.color = Color.RED;
-                rootNode.left.color = Color.BLACK;
-                rootNode.right.color = Color.BLACK;
-            } else {
-                rootNode.left = leftRotate(rootNode.left);
-                rootNode = rightRotate(rootNode);
-                rootNode.color = Color.BLACK;
-                rootNode.right.color = Color.RED;
-            }
-        } else if (rootNode.right != NIL && rootNode.right.color == Color.RED &&
-                   rootNode.right.right != NIL && rootNode.right.right.color == Color.RED) {
-            
-            if (rootNode.left != NIL && rootNode.left.color == Color.RED) {
-                rootNode.color = Color.RED;
-                rootNode.left.color = Color.BLACK;
-                rootNode.right.color = Color.BLACK;
-            } else {
-                rootNode = leftRotate(rootNode);
-                rootNode.color = Color.BLACK;
-                rootNode.left.color = Color.RED;
-            }
-        } else if (rootNode.right != NIL && rootNode.right.color == Color.RED &&
-                   rootNode.right.left != NIL && rootNode.right.left.color == Color.RED) {
-            
-            if (rootNode.left != NIL && rootNode.left.color == Color.RED) {
-                rootNode.color = Color.RED;
-                rootNode.left.color = Color.BLACK;
-                rootNode.right.color = Color.BLACK;
-            } else {
-                rootNode.right = rightRotate(rootNode.right);
-                rootNode = leftRotate(rootNode);
-                rootNode.color = Color.BLACK;
-                rootNode.left.color = Color.RED;
-            }
-        }
-        
-        return rootNode;
-    }
+    // ==================== INSERTION ====================
     
-    // Insert a node
     public void insert(int data) {
         boolean[] inserted = {false};
-        root = insertFix(root, data, inserted);
+        root = insertRecursive(root, data, inserted);
         root.color = Color.BLACK;
     }
     
-    // Find minimum node
-    private Node findMinimum(Node subtreeRoot) {
-        while (subtreeRoot.left != NIL)
-            subtreeRoot = subtreeRoot.left;
-        return subtreeRoot;
-    }
-    
-    // Find maximum node
-    private Node findMaximum(Node subtreeRoot) {
-        while (subtreeRoot.right != NIL)
-            subtreeRoot = subtreeRoot.right;
-        return subtreeRoot;
-    }
-    
-    // Helper for deletion fixup - left case
-    private Node deleteFixLeft(Node rootNode) {
-        Node sibling = rootNode.right;
-        
-        if (sibling.color == Color.RED) {
-            rootNode = leftRotate(rootNode);
-            rootNode.color = Color.BLACK;
-            rootNode.left.color = Color.RED;
-            sibling = rootNode.left.right;
+    private Node insertRecursive(Node node, int data, boolean[] inserted) {
+        if (node == NIL) {
+            inserted[0] = true;
+            return createNode(data);
         }
         
-        if ((sibling.left == NIL || sibling.left.color == Color.BLACK) &&
-            (sibling.right == NIL || sibling.right.color == Color.BLACK)) {
+        if (data < node.data) {
+            node.left = insertRecursive(node.left, data, inserted);
+        } else if (data > node.data) {
+            node.right = insertRecursive(node.right, data, inserted);
+        } else {
+            return node; // Duplicate
+        }
+        
+        if (inserted[0]) {
+            node = fixInsertViolations(node);
+        }
+        
+        return node;
+    }
+    
+    private Node createNode(int data) {
+        Node newNode = new Node(data);
+        newNode.left = NIL;
+        newNode.right = NIL;
+        return newNode;
+    }
+    
+    private Node fixInsertViolations(Node node) {
+        // Fix left side violations
+        if (isRed(node.left) && (isRed(node.left.left) || isRed(node.left.right))) {
+            if (isRed(node.right)) {
+                recolorNode(node);
+            } else {
+                node = fixLeftInsertViolation(node);
+            }
+        }
+        
+        // Fix right side violations
+        if (isRed(node.right) && (isRed(node.right.right) || isRed(node.right.left))) {
+            if (isRed(node.left)) {
+                recolorNode(node);
+            } else {
+                node = fixRightInsertViolation(node);
+            }
+        }
+        
+        return node;
+    }
+    
+    private Node fixLeftInsertViolation(Node node) {
+        if (isRed(node.left.left)) {
+            // Left-Left case
+            node = rightRotate(node);
+        } else {
+            // Left-Right case
+            node.left = leftRotate(node.left);
+            node = rightRotate(node);
+        }
+        node.color = Color.BLACK;
+        node.right.color = Color.RED;
+        return node;
+    }
+    
+    private Node fixRightInsertViolation(Node node) {
+        if (isRed(node.right.right)) {
+            // Right-Right case
+            node = leftRotate(node);
+        } else {
+            // Right-Left case
+            node.right = rightRotate(node.right);
+            node = leftRotate(node);
+        }
+        
+        node.color = Color.BLACK;
+        node.left.color = Color.RED;
+        return node;
+    }
+    
+    private void recolorNode(Node node) {
+        node.color = Color.RED;
+        node.left.color = Color.BLACK;
+        node.right.color = Color.BLACK;
+    }
+    
+    // ==================== DELETION ====================
+    
+    public void delete(int data) {
+        boolean[] done = {false};
+        root = deleteRecursive(root, data, done);
+        if (root != NIL) {
+            root.color = Color.BLACK;
+        }
+    }
+    
+    private Node deleteRecursive(Node node, int data, boolean[] done) {
+        if (node == NIL) {
+            return node;
+        }
+        
+        if (data < node.data) {
+            node.left = deleteRecursive(node.left, data, done);
+            if (!done[0]) {
+                node = fixDeleteLeftCase(node);
+            }
+        } else if (data > node.data) {
+            node.right = deleteRecursive(node.right, data, done);
+            if (!done[0]) {
+                node = fixDeleteRightCase(node);
+            }
+        } else {
+            node = deleteNode(node, done);
+        }
+        
+        return node;
+    }
+    
+    private Node deleteNode(Node node, boolean[] done) {
+        if (node.left == NIL || node.right == NIL) {
+            // Node has at most one child
+            Node child = (node.left != NIL) ? node.left : node.right;
+            done[0] = isRed(node);
+            return child;
+        }
+        
+        // Node has two children - replace with successor
+        Node successor = findMinimum(node.right);
+        node.data = successor.data;
+        node.right = deleteRecursive(node.right, successor.data, done);
+        
+        if (!done[0]) {
+            node = fixDeleteRightCase(node);
+        }
+        
+        return node;
+    }
+    
+    private Node fixDeleteLeftCase(Node node) {
+        Node sibling = node.right;
+        
+        // Case 1: Red sibling
+        if (isRed(sibling)) {
+            node = leftRotate(node);
+            node.color = Color.BLACK;
+            node.left.color = Color.RED;
+            sibling = node.left.right;
+        }
+        
+        // Case 2: Black sibling with two black children
+        if (isBlack(sibling.left) && isBlack(sibling.right)) {
             sibling.color = Color.RED;
-            return rootNode;
+            return node;
         }
         
-        if (sibling.right == NIL || sibling.right.color == Color.BLACK) {
+        // Case 3: Black sibling with red left child and black right child
+        if (isBlack(sibling.right)) {
             sibling = rightRotate(sibling);
             sibling.color = Color.BLACK;
             sibling.right.color = Color.RED;
-            rootNode.right = sibling;
+            node.right = sibling;
         }
         
-        rootNode = leftRotate(rootNode);
-        rootNode.color = rootNode.left.color;
-        rootNode.left.color = Color.BLACK;
-        rootNode.right.color = Color.BLACK;
+        // Case 4: Black sibling with red right child
+        node = leftRotate(node);
+        node.color = node.left.color;
+        node.left.color = Color.BLACK;
+        node.right.color = Color.BLACK;
         
-        return rootNode;
+        return node;
     }
     
-    // Helper for deletion fixup - right case
-    private Node deleteFixRight(Node rootNode) {
-        Node sibling = rootNode.left;
+    private Node fixDeleteRightCase(Node node) {
+        Node sibling = node.left;
         
-        if (sibling.color == Color.RED) {
-            rootNode = rightRotate(rootNode);
-            rootNode.color = Color.BLACK;
-            rootNode.right.color = Color.RED;
-            sibling = rootNode.right.left;
+        // Case 1: Red sibling
+        if (isRed(sibling)) {
+            node = rightRotate(node);
+            node.color = Color.BLACK;
+            node.right.color = Color.RED;
+            sibling = node.right.left;
         }
         
-        if ((sibling.left == NIL || sibling.left.color == Color.BLACK) &&
-            (sibling.right == NIL || sibling.right.color == Color.BLACK)) {
+        // Case 2: Black sibling with two black children
+        if (isBlack(sibling.left) && isBlack(sibling.right)) {
             sibling.color = Color.RED;
-            return rootNode;
+            return node;
         }
         
-        if (sibling.left == NIL || sibling.left.color == Color.BLACK) {
+        // Case 3: Black sibling with red right child and black left child
+        if (isBlack(sibling.left)) {
             sibling = leftRotate(sibling);
             sibling.color = Color.BLACK;
             sibling.left.color = Color.RED;
-            rootNode.left = sibling;
+            node.left = sibling;
         }
         
-        rootNode = rightRotate(rootNode);
-        rootNode.color = rootNode.right.color;
-        rootNode.right.color = Color.BLACK;
-        rootNode.left.color = Color.BLACK;
+        // Case 4: Black sibling with red left child
+        node = rightRotate(node);
+        node.color = node.right.color;
+        node.right.color = Color.BLACK;
+        node.left.color = Color.BLACK;
         
-        return rootNode;
+        return node;
     }
     
-    // Delete helper
-    private Node deleteHelper(Node rootNode, int data, boolean[] done) {
-        if (rootNode == NIL)
-            return rootNode;
-        
-        if (data < rootNode.data) {
-            rootNode.left = deleteHelper(rootNode.left, data, done);
-            if (!done[0])
-                rootNode = deleteFixLeft(rootNode);
-        } else if (data > rootNode.data) {
-            rootNode.right = deleteHelper(rootNode.right, data, done);
-            if (!done[0])
-                rootNode = deleteFixRight(rootNode);
-        } else {
-            if (rootNode.left == NIL || rootNode.right == NIL) {
-                Node temp = (rootNode.left != NIL) ? rootNode.left : rootNode.right;
-                done[0] = (rootNode.color == Color.RED);
-                return temp;
-            }
-            
-            Node successor = findMinimum(rootNode.right);
-            rootNode.data = successor.data;
-            rootNode.right = deleteHelper(rootNode.right, successor.data, done);
-            if (!done[0])
-                rootNode = deleteFixRight(rootNode);
-        }
-        
-        return rootNode;
-    }
+    // ==================== SEARCH OPERATIONS ====================
     
-    // Delete a node
-    public void delete(int data) {
-        boolean[] done = {false};
-        root = deleteHelper(root, data, done);
-        if (root != NIL)
-            root.color = Color.BLACK;
-    }
-    
-    // Search for a node
     public Node search(int data) {
         Node current = root;
         while (current != NIL && current.data != data) {
-            if (data < current.data)
-                current = current.left;
-            else
-                current = current.right;
+            current = (data < current.data) ? current.left : current.right;
         }
         return (current != NIL) ? current : null;
     }
     
-    // Find successor
-    private Node successorHelper(Node rootNode, int data, Node succ) {
-        if (rootNode == NIL)
-            return succ;
-        
-        if (data < rootNode.data)
-            return successorHelper(rootNode.left, data, rootNode);
-        else if (data > rootNode.data)
-            return successorHelper(rootNode.right, data, succ);
-        else {
-            if (rootNode.right != NIL)
-                return findMinimum(rootNode.right);
-            return succ;
-        }
+    public Node findMin() {
+        return (root == NIL) ? null : findMinimum(root);
     }
     
+    public Node findMax() {
+        return (root == NIL) ? null : findMaximum(root);
+    }
+    
+    private Node findMinimum(Node node) {
+        while (node.left != NIL) {
+            node = node.left;
+        }
+        return node;
+    }
+    
+    private Node findMaximum(Node node) {
+        while (node.right != NIL) {
+            node = node.right;
+        }
+        return node;
+    }
+    
+    // ==================== SUCCESSOR/PREDECESSOR ====================
+    
     public Node successor(Node node) {
-        Node result = successorHelper(root, node.data, NIL);
+        if (node == null) return null;
+        Node result = findSuccessor(root, node.data, NIL);
         return (result != NIL) ? result : null;
     }
     
-    // Find predecessor
-    private Node predecessorHelper(Node rootNode, int data, Node pred) {
-        if (rootNode == NIL)
-            return pred;
+    private Node findSuccessor(Node node, int data, Node successor) {
+        if (node == NIL) {
+            return successor;
+        }
         
-        if (data < rootNode.data)
-            return predecessorHelper(rootNode.left, data, pred);
-        else if (data > rootNode.data)
-            return predecessorHelper(rootNode.right, data, rootNode);
-        else {
-            if (rootNode.left != NIL)
-                return findMaximum(rootNode.left);
-            return pred;
+        if (data < node.data) {
+            return findSuccessor(node.left, data, node);
+        } else if (data > node.data) {
+            return findSuccessor(node.right, data, successor);
+        } else {
+            return (node.right != NIL) ? findMinimum(node.right) : successor;
         }
     }
     
     public Node predecessor(Node node) {
-        Node result = predecessorHelper(root, node.data, NIL);
+        if (node == null) return null;
+        Node result = findPredecessor(root, node.data, NIL);
         return (result != NIL) ? result : null;
     }
     
-    // Find minimum in tree
-    public Node findMin() {
-        if (root == NIL)
-            return null;
-        return findMinimum(root);
+    private Node findPredecessor(Node node, int data, Node predecessor) {
+        if (node == NIL) {
+            return predecessor;
+        }
+        
+        if (data < node.data) {
+            return findPredecessor(node.left, data, predecessor);
+        } else if (data > node.data) {
+            return findPredecessor(node.right, data, node);
+        } else {
+            return (node.left != NIL) ? findMaximum(node.left) : predecessor;
+        }
     }
     
-    // Find maximum in tree
-    public Node findMax() {
-        if (root == NIL)
-            return null;
-        return findMaximum(root);
-    }
+    // ==================== TRAVERSAL ====================
     
-    // In-order traversal
     public void inorder(Node node) {
         if (node != NIL) {
             inorder(node.left);
@@ -322,11 +352,13 @@ public class RedBlackTree {
         return root;
     }
     
-    // Example usage
+    // ==================== MAIN METHOD ====================
+    
     public static void main(String[] args) {
         RedBlackTree tree = new RedBlackTree();
         
         int[] values = {10, 20, 30, 15, 25, 5, 1};
+        System.out.println("=== INSERTION ===");
         for (int value : values) {
             tree.insert(value);
             System.out.print("After inserting " + value + ": ");
@@ -334,14 +366,18 @@ public class RedBlackTree {
             System.out.println();
         }
         
+        System.out.println("\n=== SEARCH ===");
         Node found = tree.search(15);
-        if (found != null)
-            System.out.println("\nFound: " + found.data);
+        if (found != null) {
+            System.out.println("Found: " + found.data);
+        }
         
+        System.out.println("\n=== MIN/MAX ===");
         Node minNode = tree.findMin();
         Node maxNode = tree.findMax();
         System.out.println("Min: " + minNode.data + ", Max: " + maxNode.data);
         
+        System.out.println("\n=== SUCCESSOR/PREDECESSOR ===");
         Node node = tree.search(15);
         if (node != null) {
             Node succ = tree.successor(node);
@@ -350,8 +386,9 @@ public class RedBlackTree {
             System.out.println("Predecessor of 15: " + (pred != null ? pred.data : "null"));
         }
         
+        System.out.println("\n=== DELETION ===");
         tree.delete(20);
-        System.out.print("\nAfter deleting 20: ");
+        System.out.print("After deleting 20: ");
         tree.inorder(tree.getRoot());
         System.out.println();
     }
