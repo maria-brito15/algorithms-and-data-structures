@@ -117,6 +117,7 @@ public class RedBlackTree {
             node.left = leftRotate(node.left);
             node = rightRotate(node);
         }
+        
         node.color = Color.BLACK;
         node.right.color = Color.RED;
         return node;
@@ -131,7 +132,7 @@ public class RedBlackTree {
             node.right = rightRotate(node.right);
             node = leftRotate(node);
         }
-        
+
         node.color = Color.BLACK;
         node.left.color = Color.RED;
         return node;
