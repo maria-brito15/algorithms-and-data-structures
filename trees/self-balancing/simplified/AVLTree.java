@@ -1,260 +1,260 @@
-class Node {
-    int data;
-    Node left, right;
+class No {
+    int valor;
+    No esquerda, direita;
     
-    public Node(int data) {
-        this.data = data;
-        this.left = null;
-        this.right = null;
+    public No(int valor) {
+        this.valor = valor;
+        this.esquerda = null;
+        this.direita = null;
     }
 }
 
 public class AVLTree {
-    private Node root;
+    private No raiz;
     
-    public AVLTree() {
-        root = null;
+    public ArvoreAVL() {
+        raiz = null;
     }
     
-    // Get height of a node
-    private int getHeight(Node node) {
-        if (node == null) return 0;
-        int lh = getHeight(node.left);
-        int rh = getHeight(node.right);
-        return Math.max(lh, rh) + 1;
+    // Obtém a altura de um nó
+    private int obterAltura(No no) {
+        if (no == null) return 0;
+        int alturaEsquerda = obterAltura(no.esquerda);
+        int alturaDireita = obterAltura(no.direita);
+        return Math.max(alturaEsquerda, alturaDireita) + 1;
     }
     
-    // Get balance factor of a node
-    private int getBalance(Node node) {
-        return node != null ? getHeight(node.left) - getHeight(node.right) : 0;
+    // Obtém o fator de balanceamento de um nó
+    private int obterBalanceamento(No no) {
+        return no != null ? obterAltura(no.esquerda) - obterAltura(no.direita) : 0;
     }
     
-    // Left rotation around pivot node
-    private Node leftRotate(Node pivot) {
-        Node rightChild = pivot.right;
-        Node leftSubtree = rightChild.left;
+    // Rotação à esquerda no nó pivô
+    private No rotacaoEsquerda(No noPivo) {
+        No filhoDireita = noPivo.direita;
+        No subarvoreEsquerda = filhoDireita.esquerda;
         
-        rightChild.left = pivot;
-        pivot.right = leftSubtree;
+        filhoDireita.esquerda = noPivo;
+        noPivo.direita = subarvoreEsquerda;
         
-        return rightChild;
+        return filhoDireita;
     }
     
-    // Right rotation around pivot node
-    private Node rightRotate(Node pivot) {
-        Node leftChild = pivot.left;
-        Node rightSubtree = leftChild.right;
+    // Rotação à direita no nó pivô
+    private No rotacaoDireita(No noPivo) {
+        No filhoEsquerda = noPivo.esquerda;
+        No subarvoreDireita = filhoEsquerda.direita;
         
-        leftChild.right = pivot;
-        pivot.left = rightSubtree;
+        filhoEsquerda.direita = noPivo;
+        noPivo.esquerda = subarvoreDireita;
         
-        return leftChild;
+        return filhoEsquerda;
     }
     
-    // Balance the node after insertion or deletion
-    private Node balance(Node node) {
-        int balanceFactor = getBalance(node);
+    // Balanceia o nó após inserção ou remoção
+    private No balancear(No no) {
+        int fatorBalanceamento = obterBalanceamento(no);
         
-        // Left-Left Case
-        if (balanceFactor > 1 && getBalance(node.left) >= 0)
-            return rightRotate(node);
+        // Caso Esquerda-Esquerda
+        if (fatorBalanceamento > 1 && obterBalanceamento(no.esquerda) >= 0)
+            return rotacaoDireita(no);
         
-        // Left-Right Case
-        if (balanceFactor > 1 && getBalance(node.left) < 0) {
-            node.left = leftRotate(node.left);
-            return rightRotate(node);
+        // Caso Esquerda-Direita
+        if (fatorBalanceamento > 1 && obterBalanceamento(no.esquerda) < 0) {
+            no.esquerda = rotacaoEsquerda(no.esquerda);
+            return rotacaoDireita(no);
         }
         
-        // Right-Right Case
-        if (balanceFactor < -1 && getBalance(node.right) <= 0)
-            return leftRotate(node);
+        // Caso Direita-Direita
+        if (fatorBalanceamento < -1 && obterBalanceamento(no.direita) <= 0)
+            return rotacaoEsquerda(no);
         
-        // Right-Left Case
-        if (balanceFactor < -1 && getBalance(node.right) > 0) {
-            node.right = rightRotate(node.right);
-            return leftRotate(node);
+        // Caso Direita-Esquerda
+        if (fatorBalanceamento < -1 && obterBalanceamento(no.direita) > 0) {
+            no.direita = rotacaoDireita(no.direita);
+            return rotacaoEsquerda(no);
         }
         
-        return node;
+        return no;
     }
     
-    // Insert helper function
-    private Node insertNode(Node node, int data) {
-        if (node == null)
-            return new Node(data);
+    // Função auxiliar de inserção
+    private No inserirNo(No noAtual, int valor) {
+        if (noAtual == null)
+            return new No(valor);
         
-        if (data < node.data)
-            node.left = insertNode(node.left, data);
-        else if (data > node.data)
-            node.right = insertNode(node.right, data);
+        if (valor < noAtual.valor)
+            noAtual.esquerda = inserirNo(noAtual.esquerda, valor);
+        else if (valor > noAtual.valor)
+            noAtual.direita = inserirNo(noAtual.direita, valor);
         else
-            return node; // Duplicate values not allowed
+            return noAtual; // Valores duplicados não são permitidos
         
-        return balance(node);
+        return balancear(noAtual);
     }
     
-    // Insert a node with given data
-    public void insert(int data) {
-        root = insertNode(root, data);
+    // Insere um nó com o valor fornecido
+    public void inserir(int valor) {
+        raiz = inserirNo(raiz, valor);
     }
     
-    // Find the node with minimum value in subtree
-    private Node findMinimum(Node subtreeRoot) {
-        while (subtreeRoot != null && subtreeRoot.left != null)
-            subtreeRoot = subtreeRoot.left;
-        return subtreeRoot;
+    // Encontra o nó com valor mínimo na subárvore
+    private No encontrarMinimo(No raizSubarvore) {
+        while (raizSubarvore != null && raizSubarvore.esquerda != null)
+            raizSubarvore = raizSubarvore.esquerda;
+        return raizSubarvore;
     }
     
-    // Find the node with maximum value in subtree
-    private Node findMaximum(Node subtreeRoot) {
-        while (subtreeRoot != null && subtreeRoot.right != null)
-            subtreeRoot = subtreeRoot.right;
-        return subtreeRoot;
+    // Encontra o nó com valor máximo na subárvore
+    private No encontrarMaximo(No raizSubarvore) {
+        while (raizSubarvore != null && raizSubarvore.direita != null)
+            raizSubarvore = raizSubarvore.direita;
+        return raizSubarvore;
     }
     
-    // Delete helper function
-    private Node deleteNodeHelper(Node node, int data) {
-        if (node == null)
-            return node;
+    // Função auxiliar de remoção
+    private No removerNoAuxiliar(No noAtual, int valor) {
+        if (noAtual == null)
+            return noAtual;
         
-        if (data < node.data) {
-            node.left = deleteNodeHelper(node.left, data);
-        } else if (data > node.data) {
-            node.right = deleteNodeHelper(node.right, data);
+        if (valor < noAtual.valor) {
+            noAtual.esquerda = removerNoAuxiliar(noAtual.esquerda, valor);
+        } else if (valor > noAtual.valor) {
+            noAtual.direita = removerNoAuxiliar(noAtual.direita, valor);
         } else {
-            if (node.left == null)
-                return node.right;
-            else if (node.right == null)
-                return node.left;
+            if (noAtual.esquerda == null)
+                return noAtual.direita;
+            else if (noAtual.direita == null)
+                return noAtual.esquerda;
             
-            Node temp = findMinimum(node.right);
-            node.data = temp.data;
-            node.right = deleteNodeHelper(node.right, temp.data);
+            No sucessor = encontrarMinimo(noAtual.direita);
+            noAtual.valor = sucessor.valor;
+            noAtual.direita = removerNoAuxiliar(noAtual.direita, sucessor.valor);
         }
         
-        return balance(node);
+        return balancear(noAtual);
     }
     
-    // Delete a node with given data
-    public void delete(int data) {
-        root = deleteNodeHelper(root, data);
+    // Remove um nó com o valor fornecido
+    public void remover(int valor) {
+        raiz = removerNoAuxiliar(raiz, valor);
     }
     
-    // Search for a node with given data
-    public Node search(int data) {
-        Node current = root;
-        while (current != null && current.data != data) {
-            if (data < current.data)
-                current = current.left;
+    // Busca por um nó com o valor fornecido
+    public No buscar(int valor) {
+        No noAtual = raiz;
+        while (noAtual != null && noAtual.valor != valor) {
+            if (valor < noAtual.valor)
+                noAtual = noAtual.esquerda;
             else
-                current = current.right;
+                noAtual = noAtual.direita;
         }
-        return current;
+        return noAtual;
     }
     
-    // Find successor using in-order traversal approach
-    private Node successorHelper(Node rootNode, Node target, Node succ) {
-        if (rootNode == null)
-            return succ;
+    // Encontra o sucessor usando percurso em-ordem
+    private No sucessorAuxiliar(No noRaiz, No noAlvo, No sucessorAtual) {
+        if (noRaiz == null)
+            return sucessorAtual;
         
-        if (target.data < rootNode.data) {
-            return successorHelper(rootNode.left, target, rootNode);
-        } else if (target.data > rootNode.data) {
-            return successorHelper(rootNode.right, target, succ);
+        if (noAlvo.valor < noRaiz.valor) {
+            return sucessorAuxiliar(noRaiz.esquerda, noAlvo, noRaiz);
+        } else if (noAlvo.valor > noRaiz.valor) {
+            return sucessorAuxiliar(noRaiz.direita, noAlvo, sucessorAtual);
         } else {
-            if (rootNode.right != null)
-                return findMinimum(rootNode.right);
-            return succ;
+            if (noRaiz.direita != null)
+                return encontrarMinimo(noRaiz.direita);
+            return sucessorAtual;
         }
     }
     
-    public Node successor(Node node) {
-        return successorHelper(root, node, null);
+    public No sucessor(No no) {
+        return sucessorAuxiliar(raiz, no, null);
     }
     
-    // Find predecessor using in-order traversal approach
-    private Node predecessorHelper(Node rootNode, Node target, Node pred) {
-        if (rootNode == null)
-            return pred;
+    // Encontra o predecessor usando percurso em-ordem
+    private No predecessorAuxiliar(No noRaiz, No noAlvo, No predecessorAtual) {
+        if (noRaiz == null)
+            return predecessorAtual;
         
-        if (target.data < rootNode.data) {
-            return predecessorHelper(rootNode.left, target, pred);
-        } else if (target.data > rootNode.data) {
-            return predecessorHelper(rootNode.right, target, rootNode);
+        if (noAlvo.valor < noRaiz.valor) {
+            return predecessorAuxiliar(noRaiz.esquerda, noAlvo, predecessorAtual);
+        } else if (noAlvo.valor > noRaiz.valor) {
+            return predecessorAuxiliar(noRaiz.direita, noAlvo, noRaiz);
         } else {
-            if (rootNode.left != null)
-                return findMaximum(rootNode.left);
-            return pred;
+            if (noRaiz.esquerda != null)
+                return encontrarMaximo(noRaiz.esquerda);
+            return predecessorAtual;
         }
     }
     
-    public Node predecessor(Node node) {
-        return predecessorHelper(root, node, null);
+    public No predecessor(No no) {
+        return predecessorAuxiliar(raiz, no, null);
     }
     
-    // Find the minimum value in the entire tree
-    public Node findMin() {
-        if (root == null)
+    // Encontra o valor mínimo na árvore inteira
+    public No encontrarMin() {
+        if (raiz == null)
             return null;
-        return findMinimum(root);
+        return encontrarMinimo(raiz);
     }
     
-    // Find the maximum value in the entire tree
-    public Node findMax() {
-        if (root == null)
+    // Encontra o valor máximo na árvore inteira
+    public No encontrarMax() {
+        if (raiz == null)
             return null;
-        return findMaximum(root);
+        return encontrarMaximo(raiz);
     }
     
-    // Perform in-order traversal and print nodes
-    public void inorder(Node node) {
-        if (node != null) {
-            inorder(node.left);
-            System.out.print(node.data + " ");
-            inorder(node.right);
+    // Realiza percurso em-ordem e imprime os nós
+    public void emOrdem(No no) {
+        if (no != null) {
+            emOrdem(no.esquerda);
+            System.out.print(no.valor + " ");
+            emOrdem(no.direita);
         }
     }
     
-    public Node getRoot() {
-        return root;
+    public No getRaiz() {
+        return raiz;
     }
     
-    // Example usage demonstrating all operations
+    // Exemplo de uso demonstrando todas as operações
     public static void main(String[] args) {
-        AVLTree tree = new AVLTree();
+        ArvoreAVL arvore = new ArvoreAVL();
         
-        // Insert elements
-        int[] values = {10, 20, 30, 15, 25, 5, 1};
-        for (int value : values) {
-            tree.insert(value);
-            System.out.print("After inserting " + value + ": ");
-            tree.inorder(tree.getRoot());
+        // Inserir elementos
+        int[] valores = {10, 20, 30, 15, 25, 5, 1};
+        for (int valor : valores) {
+            arvore.inserir(valor);
+            System.out.print("Após inserir " + valor + ": ");
+            arvore.emOrdem(arvore.getRaiz());
             System.out.println();
         }
         
-        // Search for a node
-        Node found = tree.search(15);
-        if (found != null)
-            System.out.println("\nFound: " + found.data);
+        // Buscar um nó
+        No encontrado = arvore.buscar(15);
+        if (encontrado != null)
+            System.out.println("\nEncontrado: " + encontrado.valor);
         
-        // Find minimum and maximum
-        Node minNode = tree.findMin();
-        Node maxNode = tree.findMax();
-        System.out.println("Min: " + minNode.data + ", Max: " + maxNode.data);
+        // Encontrar mínimo e máximo
+        No noMinimo = arvore.encontrarMin();
+        No noMaximo = arvore.encontrarMax();
+        System.out.println("Mínimo: " + noMinimo.valor + ", Máximo: " + noMaximo.valor);
         
-        // Find successor and predecessor
-        Node node = tree.search(15);
-        if (node != null) {
-            Node succ = tree.successor(node);
-            Node pred = tree.predecessor(node);
-            System.out.println("Successor of 15: " + (succ != null ? succ.data : "null"));
-            System.out.println("Predecessor of 15: " + (pred != null ? pred.data : "null"));
+        // Encontrar sucessor e predecessor
+        No no = arvore.buscar(15);
+        if (no != null) {
+            No sucessor = arvore.sucessor(no);
+            No predecessor = arvore.predecessor(no);
+            System.out.println("Sucessor de 15: " + (sucessor != null ? sucessor.valor : "null"));
+            System.out.println("Predecessor de 15: " + (predecessor != null ? predecessor.valor : "null"));
         }
         
-        // Delete a node
-        tree.delete(20);
-        System.out.print("\nAfter deleting 20: ");
-        tree.inorder(tree.getRoot());
+        // Remover um nó
+        arvore.remover(20);
+        System.out.print("\nApós remover 20: ");
+        arvore.emOrdem(arvore.getRaiz());
         System.out.println();
     }
 }
