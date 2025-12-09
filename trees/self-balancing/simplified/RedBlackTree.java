@@ -66,18 +66,27 @@ public class RedBlackTree {
     }
     
     private No balancear(No no) {
-        if (ehVermelho(no.esquerda) && ehVermelho(no.direita)) {
-            inverterCores(no);
+        // Caso esquerda-direita: requer rotação dupla
+        if (ehVermelho(no.esquerda) && ehVermelho(no.esquerda.direita)) {
+            no.esquerda = rotacaoEsquerda(no.esquerda);
         }
         
-        if (ehVermelho(no.direita) && !ehVermelho(no.esquerda)) {
-            no = rotacaoEsquerda(no);
+        // Caso direita-esquerda: requer rotação dupla
+        if (ehVermelho(no.direita) && ehVermelho(no.direita.esquerda)) {
+            no.direita = rotacaoDireita(no.direita);
         }
         
+        // Caso esquerda-esquerda
         if (ehVermelho(no.esquerda) && ehVermelho(no.esquerda.esquerda)) {
             no = rotacaoDireita(no);
         }
         
+        // Caso direita-direita
+        if (ehVermelho(no.direita) && ehVermelho(no.direita.direita)) {
+            no = rotacaoEsquerda(no);
+        }
+        
+        // Split de nó 4 (dois filhos vermelhos)
         if (ehVermelho(no.esquerda) && ehVermelho(no.direita)) {
             inverterCores(no);
         }
@@ -137,7 +146,7 @@ public class RedBlackTree {
     // ==================== MÉTODO MAIN ====================
     
     public static void main(String[] args) {
-        ArvoreRubroNegra arvore = new ArvoreRubroNegra();
+        RedBlackTree arvore = new RedBlackTree();
         
         int[] valores = {10, 20, 30, 15, 25, 5, 1};
         System.out.println("=== INSERÇÃO ===");
