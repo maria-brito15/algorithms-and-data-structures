@@ -1,272 +1,285 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-typedef struct Node {
-    int data;
-    struct Node *left, *right;
-} Node;
+typedef struct No {
+    int valor;
+    struct No *esquerda, *direita;
+} No;
 
-typedef struct AVLTree {
-    Node *root;
-} AVLTree;
+typedef struct ArvoreAVL {
+    No *raiz;
+} ArvoreAVL;
 
-// Get height of a node
-int getHeight(Node *node) {
-    if (node == NULL) return 0;
-    int lh = getHeight(node->left);
-    int rh = getHeight(node->right);
-    return (lh > rh ? lh : rh) + 1;
+// Obtém a altura de um nó
+int obterAltura(No *no) {
+    if (no == NULL) return 0;
+    int alturaEsquerda = obterAltura(no->esquerda);
+    int alturaDireita = obterAltura(no->direita);
+    return (alturaEsquerda > alturaDireita ? alturaEsquerda : alturaDireita) + 1;
 }
 
-// Get balance factor of a node
-int getBalance(Node *node) {
-    return node ? getHeight(node->left) - getHeight(node->right) : 0;
+// Obtém o fator de balanceamento de um nó
+int obterBalanceamento(No *no) {
+    return no ? obterAltura(no->esquerda) - obterAltura(no->direita) : 0;
 }
 
-// Create a new node
-Node* createNode(int data) {
-    Node *node = (Node*)malloc(sizeof(Node));
-    node->data = data;
-    node->left = NULL;
-    node->right = NULL;
-    return node;
+// Cria um novo nó
+No* criarNo(int valor) {
+    No *novoNo = (No*)malloc(sizeof(No));
+    novoNo->valor = valor;
+    novoNo->esquerda = NULL;
+    novoNo->direita = NULL;
+    return novoNo;
 }
 
-// Initialize tree
-AVLTree* createTree() {
-    AVLTree *tree = (AVLTree*)malloc(sizeof(AVLTree));
-    tree->root = NULL;
-    return tree;
+// Inicializa a árvore
+ArvoreAVL* criarArvore() {
+    ArvoreAVL *arvore = (ArvoreAVL*)malloc(sizeof(ArvoreAVL));
+    arvore->raiz = NULL;
+    return arvore;
 }
 
-// Left rotation around pivot node
-Node* leftRotate(Node *pivot) {
-    Node *rightChild = pivot->right;
-    Node *leftSubtree = rightChild->left;
+// Rotação à esquerda no nó pivô
+No* rotacaoEsquerda(No *noPivo) {
+    No *filhoDireita = noPivo->direita;
+    No *subarvoreEsquerda = filhoDireita->esquerda;
     
-    rightChild->left = pivot;
-    pivot->right = leftSubtree;
+    filhoDireita->esquerda = noPivo;
+    noPivo->direita = subarvoreEsquerda;
     
-    return rightChild;
+    return filhoDireita;
 }
 
-// Right rotation around pivot node
-Node* rightRotate(Node *pivot) {
-    Node *leftChild = pivot->left;
-    Node *rightSubtree = leftChild->right;
+// Rotação à direita no nó pivô
+No* rotacaoDireita(No *noPivo) {
+    No *filhoEsquerda = noPivo->esquerda;
+    No *subarvoreDireita = filhoEsquerda->direita;
     
-    leftChild->right = pivot;
-    pivot->left = rightSubtree;
+    filhoEsquerda->direita = noPivo;
+    noPivo->esquerda = subarvoreDireita;
     
-    return leftChild;
+    return filhoEsquerda;
 }
 
-// Balance the node after insertion or deletion
-Node* balance(Node *node) {
-    int balanceFactor = getBalance(node);
+// Balanceia o nó após inserção ou remoção
+No* balancear(No *no) {
+    int fatorBalanceamento = obterBalanceamento(no);
     
-    // Left-Left Case
-    if (balanceFactor > 1 && getBalance(node->left) >= 0)
-        return rightRotate(node);
+    // Caso Esquerda-Esquerda
+    if (fatorBalanceamento > 1 && obterBalanceamento(no->esquerda) >= 0)
+        return rotacaoDireita(no);
     
-    // Left-Right Case
-    if (balanceFactor > 1 && getBalance(node->left) < 0) {
-        node->left = leftRotate(node->left);
-        return rightRotate(node);
+    // Caso Esquerda-Direita
+    if (fatorBalanceamento > 1 && obterBalanceamento(no->esquerda) < 0) {
+        no->esquerda = rotacaoEsquerda(no->esquerda);
+        return rotacaoDireita(no);
     }
     
-    // Right-Right Case
-    if (balanceFactor < -1 && getBalance(node->right) <= 0)
-        return leftRotate(node);
+    // Caso Direita-Direita
+    if (fatorBalanceamento < -1 && obterBalanceamento(no->direita) <= 0)
+        return rotacaoEsquerda(no);
     
-    // Right-Left Case
-    if (balanceFactor < -1 && getBalance(node->right) > 0) {
-        node->right = rightRotate(node->right);
-        return leftRotate(node);
+    // Caso Direita-Esquerda
+    if (fatorBalanceamento < -1 && obterBalanceamento(no->direita) > 0) {
+        no->direita = rotacaoDireita(no->direita);
+        return rotacaoEsquerda(no);
     }
     
-    return node;
+    return no;
 }
 
-// Insert helper function
-Node* insertNode(Node *node, int data) {
-    if (node == NULL)
-        return createNode(data);
+// Função auxiliar de inserção
+No* inserirNo(No *noAtual, int valor) {
+    if (noAtual == NULL)
+        return criarNo(valor);
     
-    if (data < node->data)
-        node->left = insertNode(node->left, data);
-    else if (data > node->data)
-        node->right = insertNode(node->right, data);
+    if (valor < noAtual->valor)
+        noAtual->esquerda = inserirNo(noAtual->esquerda, valor);
+    else if (valor > noAtual->valor)
+        noAtual->direita = inserirNo(noAtual->direita, valor);
     else
-        return node; // Duplicate values not allowed
+        return noAtual; // Valores duplicados não são permitidos
     
-    return balance(node);
+    return balancear(noAtual);
 }
 
-// Insert a node with given data
-void insert(AVLTree *tree, int data) {
-    tree->root = insertNode(tree->root, data);
+// Insere um nó com o valor fornecido
+void inserir(ArvoreAVL *arvore, int valor) {
+    arvore->raiz = inserirNo(arvore->raiz, valor);
 }
 
-// Find the node with minimum value in subtree
-Node* findMinimum(Node *subtreeRoot) {
-    while (subtreeRoot && subtreeRoot->left)
-        subtreeRoot = subtreeRoot->left;
-    return subtreeRoot;
+// Encontra o nó com valor mínimo na subárvore
+No* encontrarMinimo(No *raizSubarvore) {
+    while (raizSubarvore && raizSubarvore->esquerda)
+        raizSubarvore = raizSubarvore->esquerda;
+    return raizSubarvore;
 }
 
-// Find the node with maximum value in subtree
-Node* findMaximum(Node *subtreeRoot) {
-    while (subtreeRoot && subtreeRoot->right)
-        subtreeRoot = subtreeRoot->right;
-    return subtreeRoot;
+// Encontra o nó com valor máximo na subárvore
+No* encontrarMaximo(No *raizSubarvore) {
+    while (raizSubarvore && raizSubarvore->direita)
+        raizSubarvore = raizSubarvore->direita;
+    return raizSubarvore;
 }
 
-// Delete helper function
-Node* deleteNodeHelper(Node *node, int data) {
-    if (node == NULL)
-        return node;
+// Função auxiliar de remoção
+No* removerNoAuxiliar(No *noAtual, int valor) {
+    if (noAtual == NULL)
+        return noAtual;
     
-    if (data < node->data) {
-        node->left = deleteNodeHelper(node->left, data);
-    } else if (data > node->data) {
-        node->right = deleteNodeHelper(node->right, data);
+    if (valor < noAtual->valor) {
+        noAtual->esquerda = removerNoAuxiliar(noAtual->esquerda, valor);
+    } else if (valor > noAtual->valor) {
+        noAtual->direita = removerNoAuxiliar(noAtual->direita, valor);
     } else {
-        if (node->left == NULL) {
-            Node *temp = node->right;
-            free(node);
-            return temp;
-        } else if (node->right == NULL) {
-            Node *temp = node->left;
-            free(node);
-            return temp;
+        if (noAtual->esquerda == NULL) {
+            No *noTemporario = noAtual->direita;
+            free(noAtual);
+            return noTemporario;
+        } else if (noAtual->direita == NULL) {
+            No *noTemporario = noAtual->esquerda;
+            free(noAtual);
+            return noTemporario;
         }
         
-        Node *temp = findMinimum(node->right);
-        node->data = temp->data;
-        node->right = deleteNodeHelper(node->right, temp->data);
+        No *sucessor = encontrarMinimo(noAtual->direita);
+        noAtual->valor = sucessor->valor;
+        noAtual->direita = removerNoAuxiliar(noAtual->direita, sucessor->valor);
     }
     
-    return balance(node);
+    return balancear(noAtual);
 }
 
-// Delete a node with given data
-void deleteNode(AVLTree *tree, int data) {
-    tree->root = deleteNodeHelper(tree->root, data);
+// Remove um nó com o valor fornecido
+void remover(ArvoreAVL *arvore, int valor) {
+    arvore->raiz = removerNoAuxiliar(arvore->raiz, valor);
 }
 
-// Search for a node with given data
-Node* search(AVLTree *tree, int data) {
-    Node *current = tree->root;
-    while (current && current->data != data) {
-        if (data < current->data)
-            current = current->left;
+// Busca por um nó com o valor fornecido
+No* buscar(ArvoreAVL *arvore, int valor) {
+    No *noAtual = arvore->raiz;
+    while (noAtual && noAtual->valor != valor) {
+        if (valor < noAtual->valor)
+            noAtual = noAtual->esquerda;
         else
-            current = current->right;
+            noAtual = noAtual->direita;
     }
-    return current;
+    return noAtual;
 }
 
-// Find successor using in-order traversal approach
-Node* successorHelper(Node *root, Node *target, Node *succ) {
-    if (root == NULL)
-        return succ;
+// Encontra o sucessor usando percurso em-ordem
+No* sucessorAuxiliar(No *noRaiz, No *noAlvo, No *sucessorAtual) {
+    if (noRaiz == NULL)
+        return sucessorAtual;
     
-    if (target->data < root->data) {
-        return successorHelper(root->left, target, root);
-    } else if (target->data > root->data) {
-        return successorHelper(root->right, target, succ);
+    if (noAlvo->valor < noRaiz->valor) {
+        return sucessorAuxiliar(noRaiz->esquerda, noAlvo, noRaiz);
+    } else if (noAlvo->valor > noRaiz->valor) {
+        return sucessorAuxiliar(noRaiz->direita, noAlvo, sucessorAtual);
     } else {
-        if (root->right)
-            return findMinimum(root->right);
-        return succ;
+        if (noRaiz->direita)
+            return encontrarMinimo(noRaiz->direita);
+        return sucessorAtual;
     }
 }
 
-Node* successor(AVLTree *tree, Node *node) {
-    return successorHelper(tree->root, node, NULL);
+No* sucessor(ArvoreAVL *arvore, No *no) {
+    return sucessorAuxiliar(arvore->raiz, no, NULL);
 }
 
-// Find predecessor using in-order traversal approach
-Node* predecessorHelper(Node *root, Node *target, Node *pred) {
-    if (root == NULL)
-        return pred;
+// Encontra o predecessor usando percurso em-ordem
+No* predecessorAuxiliar(No *noRaiz, No *noAlvo, No *predecessorAtual) {
+    if (noRaiz == NULL)
+        return predecessorAtual;
     
-    if (target->data < root->data) {
-        return predecessorHelper(root->left, target, pred);
-    } else if (target->data > root->data) {
-        return predecessorHelper(root->right, target, root);
+    if (noAlvo->valor < noRaiz->valor) {
+        return predecessorAuxiliar(noRaiz->esquerda, noAlvo, predecessorAtual);
+    } else if (noAlvo->valor > noRaiz->valor) {
+        return predecessorAuxiliar(noRaiz->direita, noAlvo, noRaiz);
     } else {
-        if (root->left)
-            return findMaximum(root->left);
-        return pred;
+        if (noRaiz->esquerda)
+            return encontrarMaximo(noRaiz->esquerda);
+        return predecessorAtual;
     }
 }
 
-Node* predecessor(AVLTree *tree, Node *node) {
-    return predecessorHelper(tree->root, node, NULL);
+No* predecessor(ArvoreAVL *arvore, No *no) {
+    return predecessorAuxiliar(arvore->raiz, no, NULL);
 }
 
-// Find the minimum value in the entire tree
-Node* findMin(AVLTree *tree) {
-    if (tree->root == NULL)
+// Encontra o valor mínimo na árvore inteira
+No* encontrarMin(ArvoreAVL *arvore) {
+    if (arvore->raiz == NULL)
         return NULL;
-    return findMinimum(tree->root);
+    return encontrarMinimo(arvore->raiz);
 }
 
-// Find the maximum value in the entire tree
-Node* findMax(AVLTree *tree) {
-    if (tree->root == NULL)
+// Encontra o valor máximo na árvore inteira
+No* encontrarMax(ArvoreAVL *arvore) {
+    if (arvore->raiz == NULL)
         return NULL;
-    return findMaximum(tree->root);
+    return encontrarMaximo(arvore->raiz);
 }
 
-// Perform in-order traversal and print nodes
-void inorder(Node *node) {
-    if (node) {
-        inorder(node->left);
-        printf("%d ", node->data);
-        inorder(node->right);
+// Realiza percurso em-ordem e imprime os nós
+void emOrdem(No *no) {
+    if (no) {
+        emOrdem(no->esquerda);
+        printf("%d ", no->valor);
+        emOrdem(no->direita);
     }
 }
 
-// Example usage demonstrating all operations
+// Libera a memória da árvore
+void liberarArvore(No *no) {
+    if (no) {
+        liberarArvore(no->esquerda);
+        liberarArvore(no->direita);
+        free(no);
+    }
+}
+
+// Exemplo de uso demonstrando todas as operações
 int main() {
-    AVLTree *tree = createTree();
+    ArvoreAVL *arvore = criarArvore();
     
-    // Insert elements
-    int values[] = {10, 20, 30, 15, 25, 5, 1};
+    // Inserir elementos
+    int valores[] = {10, 20, 30, 15, 25, 5, 1};
     for (int i = 0; i < 7; i++) {
-        insert(tree, values[i]);
-        printf("After inserting %d: ", values[i]);
-        inorder(tree->root);
+        inserir(arvore, valores[i]);
+        printf("Após inserir %d: ", valores[i]);
+        emOrdem(arvore->raiz);
         printf("\n");
     }
     
-    // Search for a node
-    Node *found = search(tree, 15);
-    if (found)
-        printf("\nFound: %d\n", found->data);
+    // Buscar um nó
+    No *encontrado = buscar(arvore, 15);
+    if (encontrado)
+        printf("\nEncontrado: %d\n", encontrado->valor);
     
-    // Find minimum and maximum
-    Node *minNode = findMin(tree);
-    Node *maxNode = findMax(tree);
-    printf("Min: %d, Max: %d\n", minNode->data, maxNode->data);
+    // Encontrar mínimo e máximo
+    No *noMinimo = encontrarMin(arvore);
+    No *noMaximo = encontrarMax(arvore);
+    printf("Mínimo: %d, Máximo: %d\n", noMinimo->valor, noMaximo->valor);
     
-    // Find successor and predecessor
-    Node *node = search(tree, 15);
-    if (node) {
-        Node *succ = successor(tree, node);
-        Node *pred = predecessor(tree, node);
-        printf("Successor of 15: %d\n", succ ? succ->data : -1);
-        printf("Predecessor of 15: %d\n", pred ? pred->data : -1);
+    // Encontrar sucessor e predecessor
+    No *no = buscar(arvore, 15);
+    if (no) {
+        No *noSucessor = sucessor(arvore, no);
+        No *noPredecessor = predecessor(arvore, no);
+        printf("Sucessor de 15: %d\n", noSucessor ? noSucessor->valor : -1);
+        printf("Predecessor de 15: %d\n", noPredecessor ? noPredecessor->valor : -1);
     }
     
-    // Delete a node
-    deleteNode(tree, 20);
-    printf("\nAfter deleting 20: ");
-    inorder(tree->root);
+    // Remover um nó
+    remover(arvore, 20);
+    printf("\nApós remover 20: ");
+    emOrdem(arvore->raiz);
     printf("\n");
+    
+    // Liberar memória
+    liberarArvore(arvore->raiz);
+    free(arvore);
     
     return 0;
 }
