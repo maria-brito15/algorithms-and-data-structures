@@ -60,16 +60,20 @@ void inverterCores(No *no) {
 }
 
 No* balancear(No *no) {
-    if (ehVermelho(no->esquerda) && ehVermelho(no->direita)) {
-        inverterCores(no);
+    if (ehVermelho(no->esquerda) && ehVermelho(no->esquerda->direita)) {
+        no->esquerda = rotacaoEsquerda(no->esquerda);
     }
     
-    if (ehVermelho(no->direita) && !ehVermelho(no->esquerda)) {
-        no = rotacaoEsquerda(no);
+    if (ehVermelho(no->direita) && ehVermelho(no->direita->esquerda)) {
+        no->direita = rotacaoDireita(no->direita);
     }
     
     if (ehVermelho(no->esquerda) && ehVermelho(no->esquerda->esquerda)) {
         no = rotacaoDireita(no);
+    }
+    
+    if (ehVermelho(no->direita) && ehVermelho(no->direita->direita)) {
+        no = rotacaoEsquerda(no);
     }
     
     if (ehVermelho(no->esquerda) && ehVermelho(no->direita)) {
